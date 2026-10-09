@@ -1,0 +1,13 @@
+{
+  "name": "pixel-sidebar",
+  "owner": {
+    "name": "Francisco Faria"
+  },
+  "plugins": [
+    {
+      "name": "pixel-sidebar",
+      "source": "./"
+    }
+  ],
+  "description": "Barra lateral pixel art para o Claude Code"
+}

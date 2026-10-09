@@ -1,0 +1,10 @@
+{
+  "name": "pixel-sidebar",
+  "version": "0.1.0",
+  "description": "Barra lateral do Claude Code com modelo, contexto, custo, agentes, tarefas e um palco pixel art com personagens estilo SNES",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Francisco Faria",
+    "url": "https://github.com/karnagge"
+  }
+}
