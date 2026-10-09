@@ -2,10 +2,10 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface as Engine, Register } from 'claude-code'
 
 import type { Banner, Last, Snap, Todo } from '../types'
-import { SPRITES } from './sprites'
+import { EXTRAS, mainColor, SPRITES, type Grid } from './sprites'
 import { BAND_MS, bandGrid } from './band'
-import { bubble, escapeAt, scene, SPRITE_W, type Force, type FxKind, type Scene } from './stage'
-import { cheer, escape, say } from './talk'
+import { bubble, escapeAt, partner, scene, SPRITE_W, type Force, type FxKind, type Scene } from './stage'
+import { cheer, encLine, escape, say } from './talk'
 import { cells, merge, paint, stamp, STAGE_ROWS, type Weather } from './world'
 
 const PANE = 'sidebar'
@@ -23,7 +23,11 @@ const NAMES = SPRITES.map(s => s.name)
 const lines = new Map<string, string>() // fala fixa por janela (turno:tipo)
 let room = 34 // largura do palco, lida no último render
 let coins = 0
-let band: { kind: FxKind; start: number } | null = null // especial atravessando a tela
+let band: { kind: FxKind; start: number; power?: number } | null = null // especial atravessando a tela
+const began = new Map<string, number>() // quando cada tarefa entrou em andamento (especial carregada)
+const CHARGE_MS = 5 * 60_000
+const byName = (name: string) => [...SPRITES, ...EXTRAS].find(s => s.name === name)
+const flipped = (g: Grid, flip: boolean) => (flip ? g.map(row => [...row].reverse()) : g)
 
 const bar = (pct: number, w = 18) => {
   const n = Math.round((Math.min(100, pct) / 100) * w)
@@ -34,17 +38,18 @@ const mins = (ms: number) => `${Math.floor(ms / 60000)}min`
 const SEED = Math.floor(Math.random() * 1000) // ponytail: novo a cada load, ordem dos personagens varia por sessão
 
 /** O personagem do palco reage: fala a linha e solta a especial (no máximo uma a cada ~15s). */
-async function react($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string) {
-  try { await reactNow($, why, detail) } catch { /* enfeite: nunca atrapalha o trabalho */ }
+async function react($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string, power?: number) {
+  try { await reactNow($, why, detail, power) } catch { /* enfeite: nunca atrapalha o trabalho */ }
 }
 
-async function reactNow($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string) {
+async function reactNow($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string, power?: number) {
   const n = await read($, tick)
   const f = await read($, force)
   if (n - f.at < 22) return
   const idx = scene(n, SEED, NAMES, room, f).idx
-  lines.set(`f${n}:shout`, cheer(why, NAMES[idx]!, detail, n))
-  await update($, force, () => ({ at: n, idx }))
+  const line = cheer(why, NAMES[idx]!, detail, n)
+  lines.set(`f${n}:shout`, power ? `CARREGADO! ${line}` : line)
+  await update($, force, () => ({ at: n, idx, power }))
 }
 
 export const register: Register = on => {
@@ -53,7 +58,12 @@ export const register: Register = on => {
     await $.command.register({
       name: 'especial',
       description: 'Faz o personagem da barra lateral soltar a especial agora',
-      argumentHint: '[nome do personagem]',
+      argumentHint: '[nome do personagem] [forte]',
+    })
+    await $.command.register({
+      name: 'encontro',
+      description: 'Chama dois personagens pro palco ao mesmo tempo',
+      argumentHint: '[mario|sonic|ryu|guile|scorpion|sub-zero|pac-man]',
     })
     const r = await $.ui.open({ id: PANE, title: 'Sessão', columns: 34 })
     if (!r.isPlaced) $.ui.toast('pixel-sidebar: terminal estreito, rode /sidebar ou alargue a janela', { timeoutMs: 8000 })
@@ -112,11 +122,11 @@ export const register: Register = on => {
       const cx = Math.floor((room - SPRITE_W) / 2)
       const reacting = n > f.at && n - f.at < 200 && sc.seed === 0
       if (sc.fx && sc.fx.t === escapeAt(sc.fx.kind, cx, room) && (reacting || sc.seed % 2 === 0)) {
-        band = { kind: sc.fx.kind, start: Date.now() }
-        if (sc.fx.kind === 'coin') coins++
+        band = { kind: sc.fx.kind, start: Date.now(), power: sc.fx.power }
+        if (sc.fx.kind === 'coin' || sc.fx.kind === 'fairy') coins++
         const msg = escape(sc.fx.kind, NAMES[sc.idx]!, coins)
-        // reações a eventos não soltam toast (seriam a cada turno); o /especial e as naturais sim
-        if (msg && (forced || !reacting)) $.ui.toast(msg, { timeoutMs: 5000 })
+        // reações a eventos não soltam toast (seriam a cada turno), a não ser carregadas; o /especial e as naturais sim
+        if (msg && (forced || !reacting || sc.fx.power)) $.ui.toast(sc.fx.power ? `Especial carregado! ${msg}` : msg, { timeoutMs: 5000 })
       }
     })
     return next(e)
@@ -129,24 +139,43 @@ export const register: Register = on => {
 
   on('command.run', { command: 'especial' }, async ($, e) => {
     const n = await read($, tick)
-    const want = e.args.trim().toLowerCase()
+    const words = e.args.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    const strong = words.some(w => /^(forte|carregad)/.test(w))
+    const want = words.filter(w => !/^(forte|carregad)/.test(w)).join(' ')
     const cur = scene(n, SEED, NAMES, room, await read($, force)).idx
     const idx = want ? NAMES.findIndex(x => x.toLowerCase().includes(want)) : cur
-    if (idx < 0) return { text: `Não conheço "${e.args.trim()}". Personagens: ${NAMES.join(', ')}.` }
-    await update($, force, () => ({ at: n, idx, loud: true }))
-    return { text: `${NAMES[idx]} vai soltar a especial!` }
+    if (idx < 0) return { text: `Não conheço "${want}". Personagens: ${NAMES.join(', ')}.` }
+    await update($, force, () => ({ at: n, idx, loud: true, power: strong ? 2 : undefined }))
+    return { text: `${NAMES[idx]} vai soltar a especial${strong ? ' carregada' : ''}!` }
+  })
+
+  on('command.run', { command: 'encontro' }, async ($, e) => {
+    const n = await read($, tick)
+    const want = e.args.trim().toLowerCase()
+    const pairs = NAMES.filter(x => partner(x))
+    const idx = want
+      ? NAMES.findIndex(x => partner(x) && x.toLowerCase().includes(want))
+      : NAMES.indexOf(pairs[n % pairs.length]!)
+    if (idx < 0) return { text: `Encontros: ${pairs.join(', ')}.` }
+    await update($, force, () => ({ at: n, idx, enc: true }))
+    return { text: `${NAMES[idx]} e ${partner(NAMES[idx]!)!.guest} vão se encontrar no palco!` }
   })
 
   on('tool.call', { tool: 'TodoWrite' }, async ($, e, next) => {
     const list: Todo[] = e.todos.map(x => ({ content: x.content, status: x.status }))
     const before = (await read($, todos)).filter(x => x.status === 'completed').length
     await update($, todos, () => list)
+    for (const x of list) if (x.status === 'in_progress' && !began.has(x.content)) began.set(x.content, Date.now())
     if (list.filter(x => x.status === 'completed').length > before) {
       const n = await read($, tick)
       await update($, banner, () => ({ kind: 'done', at: n }))
       const fresh = list.filter(x => x.status === 'completed').at(-1)
-      await react($, 'done', fresh?.content ?? 'tarefa')
+      // tarefa longa (5+ min em andamento) = especial carregada
+      const since = fresh ? began.get(fresh.content) : undefined
+      const power = since && Date.now() - since >= CHARGE_MS ? 2 : undefined
+      await react($, 'done', fresh?.content ?? 'tarefa', power)
     }
+    if (began.size > 100) began.clear()
     return next(e)
   })
 
@@ -180,8 +209,9 @@ export const register: Register = on => {
     const ms = Date.now() - b.start
     if (ms > BAND_MS[b.kind]) return next(e)
     const { Box, Text } = $.ui.resolve(e)
-    const g = bandGrid(b.kind, ms, e.props.bodyColumns)
-    const lines = [0, 2].map(y => {
+    const g = bandGrid(b.kind, ms, e.props.bodyColumns, b.power)
+    const lines = g.filter((_, y) => y % 2 === 0).map((_, r) => {
+      const y = r * 2
       const segs: { ch: string; fg?: string; bg?: string; text: string }[] = []
       g[y]!.forEach((top, x) => {
         const bot = g[y + 1]![x]!
@@ -207,32 +237,40 @@ export const register: Register = on => {
     room = e.props.bodyColumns ?? 30
     const sc: Scene = scene(n, SEED, NAMES, room, await read($, force))
     const sp = SPRITES[sc.idx]!
-    const raw = sp.frames[Math.floor(n / 2) % 2]!
-    const px = sc.flip ? raw.map(row => [...row].reverse()) : raw
+    const frame = Math.floor(n / 2) % 2
+    const px = flipped(((sc.alt && sp.alt) || sp.frames)[frame]!, sc.flip)
+    const gsp = sc.guest && byName(sc.guest.name)
+    const guestPx = gsp && sc.guest ? flipped(((sc.guest.alt && gsp.alt) || gsp.frames)[frame]!, sc.guest.flip) : undefined
+    const hatSp = sc.hat ? byName(sc.hat) : undefined
     const now = new Date()
     const wx = await read($, weather)
     // estimativa das linhas dos cartões; sem espaço, some o cartão de agentes vazio pro palco caber
     const cardRows = 5 + 4 + 3 + 3 + Math.max(1, live.length) + 4 + Math.min(t.length, 6)
     const roomy = (e.props.scroll?.bodyRows ?? 99) >= cardRows + STAGE_ROWS
-    const canvas = cells(paint(n, room, sc, px, now, wx))
+    const canvas = cells(paint(n, room, sc, px, now, wx, { guest: guestPx, hat: hatSp && mainColor(hatSp) }))
     if (sc.talk) {
+      // no encontro, o balão aponta pra quem fala (anfitrião ou convidado)
+      const who = sc.talk.who === 'guest' && sc.guest ? sc.guest : { name: sp.name, x: sc.x, hop: sc.hop }
       let text = lines.get(sc.talk.key)
       if (!text) {
         const lt = await read($, last)
-        text = say(sc.talk.kind, sp.name, sc.fx?.kind ?? null, sc.seed, {
-          s, t, last: lt, mins: (Date.now() - s.startedAt) / 60000, now, weather: wx,
-        })
+        text = sc.talk.kind === 'enc'
+          ? encLine(who.name, sc.talk.line ?? 0, sc.seed + n)
+          : say(sc.talk.kind, sp.name, sc.fx?.kind ?? null, sc.seed, {
+            s, t, last: lt, mins: (Date.now() - s.startedAt) / 60000, now, weather: wx,
+          })
+        if (sc.talk.kind === 'shout' && sc.fx?.power && !text.startsWith('CARREGADO')) text = `CARREGADO! ${text}`
         if (lines.size > 30) lines.clear()
         lines.set(sc.talk.key, text)
       }
       const width = Math.min(room, Math.max(18, Math.min(text.length, 26) + 4))
-      const head = sc.x + SPRITE_W / 2
+      const head = Math.max(1, Math.min(room - 2, who.x + SPRITE_W / 2))
       const left = Math.min(Math.max(0, head - Math.floor(width / 2)), room - width)
-      const bb = bubble(sp.name, text, sc.talk.since, width, head - left, n % 2 === 0)
-      const headRow = Math.floor((STAGE_ROWS * 2 - 3 - 19 - sc.hop) / 2) // linha do topo da cabeça no palco
+      const bb = bubble(who.name, text, sc.talk.since, width, head - left, n % 2 === 0)
+      const headRow = Math.floor((STAGE_ROWS * 2 - 3 - 19 - who.hop) / 2) // linha do topo da cabeça no palco
       const top = headRow - (bb.body.length + 3)
       stamp(canvas, top, left, bb.top, 'line')
-      stamp(canvas, top, left + 2, ` ${sp.name} `, '#e8875f', { bold: true })
+      stamp(canvas, top, left + 2, ` ${who.name} `, '#e8875f', { bold: true })
       bb.body.forEach((l, i) => {
         stamp(canvas, top + 1 + i, left, l, 'line')
         stamp(canvas, top + 1 + i, left + 2, l.slice(2, -2), 'ink', { bold: true })

@@ -16,6 +16,6 @@ export type Snap = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'pixel-sidebar': { snap: Snap; todos: Todo[]; tick: number; last: Last; weather: Weather; banner: Banner; gen: string; force: { at: number; idx: number; loud?: boolean } }
+    'pixel-sidebar': { snap: Snap; todos: Todo[]; tick: number; last: Last; weather: Weather; banner: Banner; gen: string; force: { at: number; idx: number; loud?: boolean; power?: number; enc?: boolean } }
   }
 }

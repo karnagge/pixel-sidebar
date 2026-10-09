@@ -3,13 +3,26 @@
 import type { Grid } from './sprites'
 import type { FxKind } from './stage'
 import { hash } from './stage'
+import { halo } from './world'
 
 export const BAND_MS: Record<FxKind, number> = {
   beam: 2200, shot: 1300, missile: 1500, hadouken: 1600, bolt: 1300, dash: 1000,
   chomp: 2600, coin: 1800, ring: 1400, wind: 1800, grenade: 1900, roll: 1800,
+  gaster: 2200, harpoon: 2000, ice: 2200, glitch: 1400, fairy: 2000, duck: 2200, boom: 1700, whip: 1500,
+  bomb: 1900, barrel: 2000, egg: 1800, sonicboom: 1400, omni: 1600, chains: 1800, airdash: 1100,
+  invaders: 2400, lance: 1500, vent: 2000, tetris: 2600,
 }
 
-export function bandGrid(kind: FxKind, ms: number, W: number): Grid {
+/** Faixa da especial; carregada (power) ganha 2 px de brilho em volta e fica com 3 linhas. */
+export function bandGrid(kind: FxKind, ms: number, W: number, power?: number): Grid {
+  const g = draw(kind, ms, W)
+  if (!power) return g
+  const big: Grid = [Array<string>(W).fill(''), ...g, Array<string>(W).fill('')]
+  halo(big)
+  return big
+}
+
+function draw(kind: FxKind, ms: number, W: number): Grid {
   const H = 4
   const g: Grid = Array.from({ length: H }, () => Array<string>(W).fill(''))
   const put = (x: number, y: number, c: string) => {
@@ -110,6 +123,187 @@ export function bandGrid(kind: FxKind, ms: number, W: number): Grid {
         if (x % 3 === 0) y = Math.max(0, Math.min(3, y + (hash(x + Math.floor(ms / 220)) % 3) - 1))
         put(x, y, '#fff27a')
         if (hash(x) % 4 === 0) put(x, Math.min(3, y + 1), '#ffd23a')
+      }
+      break
+    }
+    case 'gaster': { // caveira na beirada direita e o feixe atravessando
+      const front = Math.max(-2, W - 8 - Math.min(1, p / 0.4) * W)
+      const SK = ['.WW.', 'WkkW', 'WWWW', 'W.W.']
+      SK.forEach((row, y) => [...row].forEach((ch, d) => { if (ch !== '.') put(W - 5 + d, y, ch === 'W' ? '#f2f2f2' : '#5fd8ff') }))
+      if (p < 0.9) for (let x = Math.ceil(front); x < W - 5; x++) { put(x, 1, '#ffffff'); put(x, 2, p > 0.75 ? '#bfe8ff' : '#ffffff'); if (p <= 0.75) { put(x, 0, '#bfe8ff'); put(x, 3, '#bfe8ff') } }
+      break
+    }
+    case 'harpoon': { // vai até a borda esquerda e volta puxando um pedaço
+      const tip = p < 0.5 ? W - (p / 0.5) * (W + 2) : -2 + ((p - 0.5) / 0.5) * (W + 2)
+      for (let x = Math.ceil(tip) + 1; x < W; x++) put(x, 1, x % 2 ? '#c8a040' : '#8a6a2a')
+      put(tip, 0, '#e0e0e8'); put(tip, 1, '#ffffff'); put(tip, 2, '#e0e0e8'); put(tip - 1, 1, '#c9ced8')
+      if (p >= 0.5) for (let d = 1; d <= 6; d++) { put(tip - 1 - d, 2, '#c9ced8'); put(tip - 1 - d, 3, '#8a8f9a') }
+      break
+    }
+    case 'ice': { // bola de gelo, a faixa congela e racha
+      if (p < 0.45) {
+        const x = W - (p / 0.45) * (W + 6)
+        for (let y = 1; y < 3; y++) for (let d = 0; d < 3; d++) put(x + d, y, d === 0 ? '#ffffff' : '#5ab8f0')
+        for (let i = 1; i < 6; i++) put(x + 3 + i * 2, (i % 2) + 1, '#bfe8ff')
+      } else {
+        const crack = p > 0.75
+        for (let x = 0; x < W; x++) for (let y = 0; y < 4; y++) {
+          const h = hash(x * 4 + y)
+          if (crack && h % 4 === 0) continue
+          const fall = crack ? Math.floor((p - 0.75) * 20 * ((h % 3) + 1)) : 0
+          if (y === 3 || h % 5 === 0) put(x, y + fall, h % 7 === 0 ? '#ffffff' : '#9fd6ff')
+        }
+      }
+      break
+    }
+    case 'glitch': { // blocos corrompidos que vão se consertando
+      const tick = Math.floor(ms / 80)
+      for (let i = 0; i < W / 3; i++) {
+        const h = hash(i * 7 + tick * 131)
+        if (h % 100 >= 45 * (1 - p)) continue
+        const col = ['#ff00ff', '#00ffff', '#ffff00', '#9a8ab0', '#e8e8f0'][h % 5]!
+        for (let d = 0; d < 3; d++) put(i * 3 + d, (h >> 6) % 4, col)
+      }
+      break
+    }
+    case 'fairy': { // Navi atravessa em zigue-zague deixando brilho
+      const at = (k: number) => [lead + k * 3, Math.round(1.5 + Math.sin((ms - k * 60) / 90) * 1.5)] as const
+      for (let k = 6; k >= 0; k--) {
+        const [x, y] = at(k)
+        put(x, y, k === 0 ? '#ffffff' : k < 3 ? '#bfe8ff' : '#7fc8ff')
+      }
+      put(lead, at(0)[1] + 1, '#bfe8ff')
+      break
+    }
+    case 'duck': { // patos cruzam, levam tiro e caem
+      for (let i = 0; i < 2; i++) {
+        const x = W - Math.min(p, 0.6) / 0.6 * W * 0.8 + i * 10
+        const y = p < 0.6 ? 1 - i % 2 : 1 + Math.floor((p - 0.6) * 25)
+        const flap = Math.floor(ms / 120 + i) % 2
+        put(x, y, '#2a8a3a'); put(x - 1, y, '#ffd23a'); put(x + 1, y + 1, '#8a5a2a'); put(x, y + 1, '#8a5a2a')
+        if (p < 0.6) put(x + 1, y + (flap ? 0 : 2), '#c8a070')
+        if (p >= 0.6 && p < 0.68) { put(x - 1, y - 1, '#ffffff'); put(x + 2, y - 1, '#ffffff') }
+      }
+      break
+    }
+    case 'boom': { // explosão do creeper na beirada do painel, blocos voando
+      const ex = W * 0.88
+      const r = Math.min(10, p * 36)
+      for (let y = 0; y < 4; y++) for (let d = -r; d <= r; d++) {
+        if (Math.abs(d) + Math.abs(y - 1.5) * 2 > r) continue
+        const k = Math.abs(d) / Math.max(1, r)
+        put(ex + d, y, p > 0.75 ? (k < 0.5 ? '#9a9a9a' : '#6a6a6a') : k < 0.4 ? '#ffffff' : k < 0.7 ? '#ffe066' : '#ff7a2a')
+      }
+      for (let i = 0; i < 8; i++) put(ex - p * W * (0.3 + (hash(i) % 7) / 10), (hash(i * 3) % 4), i % 2 ? '#5ab84a' : '#3a8a32')
+      break
+    }
+    case 'whip': case 'chains': { // estica até a borda, segura e recolhe
+      const ext = p < 0.4 ? p / 0.4 : p < 0.7 ? 1 : (1 - p) / 0.3
+      const front = W - ext * (W + 2)
+      const lines = kind === 'whip' ? [1] : [0, 3]
+      for (const y of lines) {
+        for (let x = Math.ceil(front); x < W; x++) put(x, y, x % 2 ? '#c9ced8' : '#8a8f9a')
+        if (kind === 'whip') { put(front, 0, '#ff9a3a'); put(front, 2, '#ff9a3a'); put(front - 1, 1, '#ffe066') }
+        else { put(front, y, '#ffe066'); put(front + 1, y, '#ff7a2a'); put(front + 2, y, '#c83a1a'); put(front + 1 + (Math.floor(ms / 90) % 3), y === 0 ? 1 : 2, '#ff9a3a') }
+      }
+      break
+    }
+    case 'bomb': { // chama em cruz atravessando a tela
+      const len = Math.min(W, (p / 0.4) * W)
+      const fade = p > 0.8
+      for (let x = W - 1; x >= W - len; x--) for (let y = 0; y < 4; y++) {
+        if (fade && hash(x * 4 + y + Math.floor(ms / 100)) % 3) continue
+        put(x, y, fade ? '#8a8a8a' : y === 1 || y === 2 ? '#ffffff' : x < W - len + 3 ? '#ff7a2a' : '#ffe066')
+      }
+      break
+    }
+    case 'barrel': { // barris rolando
+      for (let i = 0; i < 3; i++) {
+        const x = lead + i * 11
+        for (let y = 0; y < 4; y++) for (let d = 0; d < 4; d++) {
+          if ((y === 0 || y === 3) && (d === 0 || d === 3)) continue
+          put(x + d, y, (d + Math.floor(ms / 90)) % 3 === 0 ? '#5a3a1a' : '#a06a30')
+        }
+      }
+      break
+    }
+    case 'egg': { // ovo quicando
+      const x = lead
+      const y = Math.round(Math.abs(Math.sin(ms / 160)) * 1) - 1
+      for (let dy = 0; dy < 4; dy++) for (let d = 0; d < 3; d++) {
+        if ((dy === 0 || dy === 3) && d !== 1) continue
+        put(x + d, y + dy, (d + dy + Math.floor(ms / 120)) % 3 === 0 ? '#4ac040' : '#f8f8f8')
+      }
+      break
+    }
+    case 'sonicboom': { // dois crescentes girando
+      for (let i = 0; i < 2; i++) {
+        const x = lead + i * 9
+        const wob = Math.floor(ms / 70) % 2
+        for (let y = 0; y < 4; y++) {
+          const bend = Math.round(((y - 1.5) ** 2) / 1.2)
+          put(x + bend, y, y === 1 || y === 2 ? '#ffffff' : '#ffe066')
+          put(x + bend + 1 + wob, y, '#fff6a0')
+        }
+      }
+      break
+    }
+    case 'omni': { // cortes diagonais pipocando pela tela
+      for (let i = 0; i < 9; i++) {
+        const born = i / 11
+        if (p < born || p > born + 0.18) continue
+        const x0 = hash(i * 19 + 3) % Math.max(1, W - 4)
+        const dir = i % 2 ? 1 : -1
+        for (let y = 0; y < 4; y++) put(x0 + (dir > 0 ? y : 3 - y), y, p < born + 0.08 ? '#ffffff' : '#9fd6ff')
+      }
+      break
+    }
+    case 'airdash': { // rastro rosa e azul
+      const x = lead
+      for (let d = 0; d < 16; d++) for (const y of [1, 2]) put(x + d, y - (d > 8 ? 1 : 0), d < 3 ? '#ffffff' : d < 9 ? '#ff8ab8' : '#8ad8ff')
+      for (let i = 0; i < 4; i++) put(x + 4 + hash(i + Math.floor(ms / 100)) % 14, i % 2 ? 0 : 3, '#ffd6ea')
+      break
+    }
+    case 'invaders': { // fileira marchando pra esquerda; um explode
+      const step = Math.floor(ms / 250)
+      const INV = ['.g.g.', 'ggggg', 'g.g.g']
+      for (let i = 0; i < 6; i++) {
+        const x = W - 4 - step * 3 + i * 8 - (W * 0.2)
+        if (i === 2 && p > 0.55) { if (p < 0.7) for (let k = 0; k < 5; k++) put(x + hash(k + step) % 6, hash(k * 3) % 4, '#ffffff'); continue }
+        INV.forEach((row, y) => [...row].forEach((ch, d) => { if (ch === 'g') put(x + d, y + (step % 2), '#5adc5a') }))
+      }
+      break
+    }
+    case 'lance': { // lanças voando
+      for (let i = 0; i < 3; i++) {
+        const x = lead + i * 14
+        for (let d = 0; d < 7; d++) put(x + d, 1, '#c9ced8')
+        put(x - 1, 1, '#ffffff'); put(x, 0, '#e8e8f0'); put(x, 2, '#e8e8f0')
+      }
+      break
+    }
+    case 'vent': { // sai de uma ventilação, corre e entra na outra
+      for (const vx of [0, W - 6]) for (let d = 0; d < 6; d++) put(vx + d, 3, d % 2 ? '#2a2a33' : '#7a7f8a')
+      if (p > 0.08 && p < 0.92) {
+        const x = W - 6 - ((p - 0.08) / 0.84) * (W - 9)
+        const y = Math.floor(ms / 120) % 2
+        for (let d = 0; d < 3; d++) for (let dy = 0; dy < 3; dy++) put(x + d, y + dy, d === 0 && dy === 0 ? '#9ad8f0' : '#d8303a')
+      }
+      break
+    }
+    case 'tetris': { // peças deslizam até a esquerda, completam a linha, pisca e some
+      const cols = ['#3ad0e0', '#f0d030', '#a04ad0', '#f08a24', '#3a5ad8', '#4ac040', '#e0302a']
+      const ws = [8, 4, 6, 4]
+      const n = Math.ceil(W / 5.5)
+      let target = 0
+      let i = 0
+      while (target < W) {
+        const w = Math.min(ws[i % 4]!, W - target)
+        const x = Math.max(target, W - (p * 2.4 - (i / n) * 0.9) * W)
+        const flash = p > 0.75 && Math.floor(ms / 100) % 2 === 0
+        if (p < 0.9) for (let d = 0; d < w; d++) for (const y of [2, 3]) put(x + d, y, flash ? '#ffffff' : cols[i % 7]!)
+        target += w
+        i++
       }
       break
     }

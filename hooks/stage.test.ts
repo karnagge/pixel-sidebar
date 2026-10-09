@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { bubble, scene, SPRITE_W, TURN } from './stage'
+import { bubble, meet, partner, scene, SPRITE_W, TURN } from './stage'
 
 const NAMES = ['Mario', 'Link', 'Sonic', 'Crono', 'Tarnished', 'Pac-Man', 'Kirby', 'Mega Man', 'Samus', 'Pikachu', 'Master Chief', 'Goku', 'Ryu', 'Black Mage']
 
@@ -24,7 +24,7 @@ test('passeio vai às bordas e todo turno termina no centro', async () => {
   let right = false
   for (let n = 0; n < TURN * 12; n++) {
     const s = scene(n, 7, NAMES, room)
-    if (!s.fx) expect(s.x >= 0 && s.x <= room - SPRITE_W).toBe(true)
+    if (!s.fx && !s.guest) expect(s.x >= 0 && s.x <= room - SPRITE_W).toBe(true)
     if (!s.fx && s.x === 0) left = true
     if (!s.fx && s.x === room - SPRITE_W) right = true
     if (n % TURN === TURN - 1) expect(s.x).toBe(center)
@@ -38,4 +38,41 @@ test('/especial força a especial do personagem escolhido no tick seguinte', asy
   expect(s.idx).toBe(goku)
   expect(s.fx?.kind).toBe('beam')
   expect(s.talk?.kind).toBe('shout')
+})
+
+test('encontros terminam com o anfitrião no centro e o convidado fora do palco', async () => {
+  const cx = Math.floor((34 - SPRITE_W) / 2)
+  for (const kind of ['race', 'duel', 'chase'] as const) {
+    let a = 0
+    let last = meet(kind, 0, cx, 34)
+    while (a < 150) {
+      const m = meet(kind, a, cx, 34)
+      if (!m) break
+      last = m
+      a++
+    }
+    expect(a < 150).toBe(true)
+    expect(Math.abs(last!.host.x - cx) <= 1).toBe(true)
+    expect(last!.guest.x > 34 - SPRITE_W).toBe(true)
+  }
+  expect(partner('Sonic')?.guest).toBe('Mario')
+  const s = scene(1001, 7, NAMES, 34, { at: 1000, idx: NAMES.indexOf('Ryu'), enc: true })
+  expect(s.guest?.name).toBe('Guile')
+})
+
+test('Kirby inspira e depois solta a especial de quem engoliu, de chapéu', async () => {
+  const names = [...NAMES]
+  const kirby = names.indexOf('Kirby')
+  const kinds = new Set<string>()
+  let hat: string | undefined
+  for (let n = 1001; n < 1060; n++) {
+    const s = scene(n, 7, names, 34, { at: 1000, idx: kirby, power: 2 })
+    if (s.seed !== 0) break // acabou a especial forçada
+    if (s.fx) kinds.add(s.fx.kind)
+    if (s.hat) hat = s.hat
+    if (s.fx) expect(s.fx.power).toBe(2)
+  }
+  expect(kinds.has('wind')).toBe(true)
+  expect(kinds.size).toBe(2)
+  expect(hat !== undefined && hat !== 'Kirby').toBe(true)
 })
