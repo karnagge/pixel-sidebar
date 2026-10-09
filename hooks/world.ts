@@ -290,8 +290,8 @@ function fx(kind: string, t: number, c: Ctx) {
       break
     }
     case 'gaster': { // caveira aparece no alto e solta o feixe
-      const sx = x + 15
-      const sk = sy + 1
+      const sx = x + 12 // no alto, à frente da cabeça
+      const sk = Math.max(0, sy - 7)
       const jaw = t >= 4 ? 1 : 0
       const SKULL = ['.WWWWW.', 'WWWWWWW', 'WkkWkkW', 'WkcWkcW', 'WWWkWWW']
       if (t >= 1) SKULL.forEach((row, y) => [...row].forEach((ch, d) => {
