@@ -11,7 +11,7 @@ export type FxKind =
   | 'coin' | 'ring' | 'dash' | 'bolt' | 'roll' | 'chomp' | 'wind'
   | 'shot' | 'missile' | 'hadouken' | 'grenade' | 'beam'
   | 'gaster' | 'harpoon' | 'ice' | 'glitch' | 'fairy' | 'duck' | 'boom' | 'whip' | 'bomb'
-  | 'barrel' | 'egg' | 'sonicboom' | 'omni' | 'chains' | 'airdash' | 'invaders' | 'lance' | 'vent' | 'tetris'
+  | 'barrel' | 'egg' | 'sonicboom' | 'omni' | 'chains' | 'airdash' | 'invaders' | 'lance' | 'vent'
 
 export const SPECIAL: Record<string, FxKind> = {
   Mario: 'coin', Link: 'ring', Sonic: 'dash', Crono: 'bolt', Tarnished: 'roll',
@@ -20,7 +20,7 @@ export const SPECIAL: Record<string, FxKind> = {
   Sans: 'gaster', Scorpion: 'harpoon', 'Sub-Zero': 'ice', 'MissingNo.': 'glitch', Navi: 'fairy',
   'Duck Hunt': 'duck', Creeper: 'boom', Simon: 'whip', Bomberman: 'bomb', 'Donkey Kong': 'barrel',
   Yoshi: 'egg', Guile: 'sonicboom', Cloud: 'omni', Kratos: 'chains', Madeline: 'airdash',
-  Invader: 'invaders', Arthur: 'lance', Tripulante: 'vent', Tetris: 'tetris',
+  Invader: 'invaders', Arthur: 'lance', Tripulante: 'vent',
 }
 
 // Encontros: dois personagens no palco ao mesmo tempo.
@@ -115,8 +115,8 @@ export function fxMotion(kind: FxKind, t: number, cx: number, W: number) {
       const x = t < 4 ? cx + t : t < 10 ? -999 : Math.min(cx, cx - 6 + (t - 10))
       return { dur: 17, x, hop: 0, flip: false }
     }
-    case 'gaster': case 'chains': case 'egg': case 'boom': case 'invaders': case 'tetris': case 'fairy':
-      return { dur: kind === 'chains' ? 12 : kind === 'fairy' || kind === 'invaders' || kind === 'tetris' ? 16 : 14, x: cx, hop: 0, flip: false }
+    case 'gaster': case 'chains': case 'egg': case 'boom': case 'invaders': case 'fairy':
+      return { dur: kind === 'chains' ? 12 : kind === 'fairy' || kind === 'invaders' ? 16 : 14, x: cx, hop: 0, flip: false }
     case 'whip': return { dur: 10, x: cx, hop: 0, flip: false }
   }
 }
@@ -145,7 +145,7 @@ export function escapeAt(kind: FxKind, cx: number, W: number): number {
     case 'ice': case 'sonicboom': case 'barrel': return Math.ceil(cx / 3)
     case 'lance': return Math.ceil(cx / 4)
     case 'harpoon': return Math.ceil((cx + 1) / 4)
-    case 'gaster': case 'fairy': case 'tetris': return 6
+    case 'gaster': case 'fairy': return 6
     case 'duck': return 5
     case 'boom': case 'vent': return 8
     case 'whip': case 'chains': case 'airdash': case 'invaders': return 4

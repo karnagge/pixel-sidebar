@@ -506,19 +506,6 @@ function fx(kind: string, t: number, c: Ctx) {
       if (t >= 6 && t < 10) for (let y = sy + 4; y > baseY + 3; y--) put(hx - 6 + 8 + step + 2 + ((y + t) % 2), y, '#ffffff')
       break
     }
-    case 'tetris': { // peças caem, completam a linha, a linha pisca e some
-      const P: [number, number, string][] = [[0, 8, '#3ad0e0'], [8, 4, '#f08a24'], [12, 4, '#3a5ad8']]
-      const base = hx + 1
-      if (t < 12) P.forEach(([off, w, col], i) => {
-        const k = t - i * 3
-        if (k < 0) return
-        const y = Math.min(gy - 2, Math.round((k / 3) * (gy - 2)))
-        const flash = t >= 9 && t % 2 === 1
-        for (let d = 0; d < w; d++) for (let dy = 0; dy < 2; dy++) put(base + off + d, y + dy, flash ? '#ffffff' : col)
-      })
-      if (t >= 12 && t < 15) for (let i = 0; i < 6; i++) put(base + (hash(i + t) % 16), gy - 3 - (hash(i * 7) % 6), '#fff6a0')
-      break
-    }
     case 'vent': { // duas ventilações no chão: entra numa e sai na outra
       const start = Math.floor((W - SPRITE_W) / 2)
       for (const vx of [start + 18, start - 8]) for (let d = 0; d < 6; d++) {

@@ -10,7 +10,7 @@ export const BAND_MS: Record<FxKind, number> = {
   chomp: 2600, coin: 1800, ring: 1400, wind: 1800, grenade: 1900, roll: 1800,
   gaster: 2200, harpoon: 2000, ice: 2200, glitch: 1400, fairy: 2000, duck: 2200, boom: 1700, whip: 1500,
   bomb: 1900, barrel: 2000, egg: 1800, sonicboom: 1400, omni: 1600, chains: 1800, airdash: 1100,
-  invaders: 2400, lance: 1500, vent: 2000, tetris: 2600,
+  invaders: 2400, lance: 1500, vent: 2000,
 }
 
 /** Faixa da especial; carregada (power) ganha 2 px de brilho em volta e fica com 3 linhas. */
@@ -288,22 +288,6 @@ function draw(kind: FxKind, ms: number, W: number): Grid {
         const x = W - 6 - ((p - 0.08) / 0.84) * (W - 9)
         const y = Math.floor(ms / 120) % 2
         for (let d = 0; d < 3; d++) for (let dy = 0; dy < 3; dy++) put(x + d, y + dy, d === 0 && dy === 0 ? '#9ad8f0' : '#d8303a')
-      }
-      break
-    }
-    case 'tetris': { // peças deslizam até a esquerda, completam a linha, pisca e some
-      const cols = ['#3ad0e0', '#f0d030', '#a04ad0', '#f08a24', '#3a5ad8', '#4ac040', '#e0302a']
-      const ws = [8, 4, 6, 4]
-      const n = Math.ceil(W / 5.5)
-      let target = 0
-      let i = 0
-      while (target < W) {
-        const w = Math.min(ws[i % 4]!, W - target)
-        const x = Math.max(target, W - (p * 2.4 - (i / n) * 0.9) * W)
-        const flash = p > 0.75 && Math.floor(ms / 100) % 2 === 0
-        if (p < 0.9) for (let d = 0; d < w; d++) for (const y of [2, 3]) put(x + d, y, flash ? '#ffffff' : cols[i % 7]!)
-        target += w
-        i++
       }
       break
     }

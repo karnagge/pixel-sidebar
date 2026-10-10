@@ -398,17 +398,6 @@ const ARTS: Art[] = [
       '...RRR...RRR..', '...RRR...RRR..', '..............'],
     b: { 14: '...RRRRRRRR...', 15: '..RRR....RRR..', 16: '..RRR....RRR..' },
   },
-  { // Tetris
-    name: 'Tetris',
-    palette: { P: '#a04ad0', Y: '#f0d030', C: '#3ad0e0', O: '#f08a24', B: '#3a5ad8', G: '#4ac040', R: '#e0302a' },
-    outline: '#101018',
-    a: [
-      '..............', '..............', '..............', '..............', '....PPPPPP....',
-      '....PPPPPP....', '......PP......', '......PP......', '..............', '..............',
-      'YYYY........CC', 'YYYY........CC', 'YYYYOO..BB..CC', 'YYYYOO..BB..CC', 'GGOOOOOOBBBBCC',
-      'GGOOOOOOBBBBCC', 'GGGGRRRR..RRCC', 'GGGGRRRR..RRCC'],
-    b: { 4: '..............', 5: '..............', 6: '....PPPPPP....', 7: '....PPPPPP....', 8: '......PP......', 9: '......PP......' },
-  },
 ]
 
 // Fantasma do Pac-Man: só aparece no encontro, não entra no rodízio.

@@ -8,7 +8,7 @@ Uma barra lateral para o [Claude Code](https://claude.com/claude-code) que mostr
 
 - **Painel**: modelo atual, barra de uso do contexto, custo da sessão, agentes ativos e a checklist de tarefas (TodoWrite).
 - **Palco**: um cenário discreto em tons de cinza do tema. O céu muda com a hora do dia, o sol e a lua fazem seu arco e aparecem nuvens, chuva, uma árvore, grama e um passarinho de vez em quando. Só os personagens e os especiais são coloridos.
-- **33 personagens** que se revezam a cada ~90 s: Mario, Link, Sonic, Crono, Tarnished, Pac-Man, Kirby, Mega Man, Samus, Pikachu, Master Chief, Goku, Ryu, Black Mage, Sans, Scorpion, Sub-Zero, MissingNo., Navi, o cachorro do Duck Hunt, Creeper, Simon Belmont, Bomberman, Donkey Kong, Yoshi, Guile, Cloud, Kratos, Madeline, um Space Invader, Arthur, um tripulante de Among Us e as peças de Tetris.
+- **32 personagens** que se revezam a cada ~90 s: Mario, Link, Sonic, Crono, Tarnished, Pac-Man, Kirby, Mega Man, Samus, Pikachu, Master Chief, Goku, Ryu, Black Mage, Sans, Scorpion, Sub-Zero, MissingNo., Navi, o cachorro do Duck Hunt, Creeper, Simon Belmont, Bomberman, Donkey Kong, Yoshi, Guile, Cloud, Kratos, Madeline, um Space Invader, Arthur e um tripulante de Among Us.
 - **Falas em balão de RPG**, com o texto surgindo letra a letra. São piadas, frases de motivação, comentários sobre o que está sendo feito (arquivo editado, tarefas, custo), hora do dia, dia da semana, datas especiais e o clima.
 - **Especiais que quebram a quarta parede**: o golpe sai da barra lateral e atravessa a tela inteira numa faixa acima do prompt. Alguns exemplos: o Gaster Blaster do Sans, o arpão do Scorpion (que volta puxando um pedaço da tela), o Creeper explodindo, a bomba em cruz do Bomberman, o gelo do Sub-Zero que congela e racha, o MissingNo. corrompendo a tela, a Navi dando uma dica de verdade e o Arthur perdendo a armadura.
 - **Encontros**: às vezes dois personagens dividem o palco. Mario e Sonic apostam corrida, Ryu duela com Guile, Scorpion com Sub-Zero, e o Pac-Man foge do fantasma até achar a pastilha de poder.
@@ -56,7 +56,7 @@ Fora da tela cheia, o painel abre inline.
 
 ## Aviso sobre fan art
 
-Este é um projeto de fã, sem fins comerciais. Os personagens são releituras em pixel art feitas à mão e pertencem aos seus respectivos donos (Nintendo, SEGA, Square Enix, FromSoftware, Bandai Namco, Capcom, Microsoft/Mojang, The Pokémon Company, Game Freak, Toei/Shueisha, Toby Fox, Warner Bros./NetherRealm, Konami, Sony Interactive Entertainment, Taito, Innersloth, Extremely OK Games, The Tetris Company e outros). O projeto não tem afiliação com nenhuma dessas empresas nem é endossado por elas. Se você é titular de algum desses direitos e quer que algo seja removido, abra uma issue e o conteúdo será retirado.
+Este é um projeto de fã, sem fins comerciais. Os personagens são releituras em pixel art feitas à mão e pertencem aos seus respectivos donos (Nintendo, SEGA, Square Enix, FromSoftware, Bandai Namco, Capcom, Microsoft/Mojang, The Pokémon Company, Game Freak, Toei/Shueisha, Toby Fox, Warner Bros./NetherRealm, Konami, Sony Interactive Entertainment, Taito, Innersloth, Extremely OK Games e outros). O projeto não tem afiliação com nenhuma dessas empresas nem é endossado por elas. Se você é titular de algum desses direitos e quer que algo seja removido, abra uma issue e o conteúdo será retirado.
 
 ## Licença
 

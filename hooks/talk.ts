@@ -36,7 +36,6 @@ const HELLO: Record<string, string[]> = {
   Invader: ['BIP BIP BIP', 'Invasão iniciada.', '(marcha pro lado)', 'Leve-me ao seu repositório.'],
   Arthur: ['Pela princesa!', 'Armadura polida, lança afiada.', 'Nenhum fantasma me assusta.', 'Pronto pra batalha!'],
   Tripulante: ['Tô só fazendo minhas tarefas.', 'Alguém viu o fio da elétrica?', '(anda em silêncio)', 'Reunião de emergência?'],
-  Tetris: ['♪ Korobeiniki ♪', 'Encaixa, encaixa…', 'Peça em L chegando.', 'Quatro linhas de uma vez!'],
 }
 
 // Grito da especial.
@@ -71,7 +70,6 @@ const SHOUT: Record<FxKind, string[]> = {
   invaders: ['BIP BIP BIP BIP', 'Invasão!'],
   lance: ['Lança!', 'Pela princesa!'],
   vent: ['(entra na ventilação)', 'Não vi nada. Não tô aqui.'],
-  tetris: ['TETRIS!', 'Linha completa!'],
 }
 
 const SHOUT_BY: Record<string, string[]> = {
@@ -115,7 +113,6 @@ const QUIRK: Record<string, string[]> = {
   Invader: ['Seu código foi invadido por boas práticas.', 'Descendo uma linha a cada bug.'],
   Arthur: ['Se eu tomar um hit, perco a armadura. Cuidado aí.', 'Dois hits e acabou. Que nem prod sexta à noite.'],
   Tripulante: ['Esse commit tá sus.', 'Eu vi o bug entrando na ventilação.'],
-  Tetris: ['Linha completa! Bug eliminado.', 'Peça I chegando. Agora vai.'],
 }
 
 // Encontros: [quem abre, quem responde], pela fala de cada personagem.
@@ -267,7 +264,6 @@ export function escape(kind: FxKind, name: string, coins: number): string | null
     case 'invaders': return 'Space Invaders no seu terminal! Um já foi abatido.'
     case 'lance': return 'Arthur jogou a lança… e perdeu a armadura de novo. Não olha.'
     case 'vent': return 'Tem alguém na ventilação do seu terminal… sus.'
-    case 'tetris': return 'TETRIS! Uma linha do terminal foi eliminada (de mentirinha).'
     default: return null
   }
 }
@@ -302,7 +298,6 @@ const CHEER_BY: Record<string, Partial<Record<keyof typeof CHEER, string[]>>> = 
   Kratos: { done: ['Está feito. {d}'], pause: ['BOY! Sua vez.'] },
   Madeline: { done: ['Cume alcançado: {d}'] },
   Tripulante: { done: ['Tarefa concluída: {d} (sério, não sou o impostor)'] },
-  Tetris: { done: ['Linha limpa: {d}'] },
   Arthur: { ask: ['Aguardando ordens, majestade: {d}'] },
 }
 
