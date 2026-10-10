@@ -25,7 +25,26 @@ let room = 34 // largura do palco, lida no último render
 let coins = 0
 let band: { kind: FxKind; start: number; power?: number } | null = null // especial atravessando a tela
 const began = new Map<string, number>() // quando cada tarefa entrou em andamento (especial carregada)
-const CHARGE_MS = 5 * 60_000
+let chargeMs = 5 * 60_000
+let notifs = true
+let alertUsd = 10
+let home = ''
+// progresso salvo em ~/.claude/pixel-sidebar.json
+const stats = { xp: 0, tasks: 0, deaths: 0, bosses: 0, focus: 0, got: [] as string[] }
+const ACH: [string, string, () => boolean][] = [
+  ['Primeira vitória', '1ª tarefa concluída', () => stats.tasks >= 1],
+  ['Produtivo', '10 tarefas concluídas', () => stats.tasks >= 10],
+  ['Lenda', '100 tarefas concluídas', () => stats.tasks >= 100],
+  ['Caçador de bugs', 'derrotou um chefão', () => stats.bosses >= 1],
+  ['Fênix', 'morreu 3 vezes e voltou', () => stats.deaths >= 3],
+  ['Foco total', 'completou um pomodoro', () => stats.focus >= 1],
+]
+const level = (xp: number) => Math.floor(Math.sqrt(xp / 25)) + 1
+const BOSSES = ['Bug Gigante', 'Null Pointer', 'Segfault', 'Merge Conflict', 'Stack Overflow']
+let boss = { streak: 0, name: '' } // erros seguidos no Bash; 3+ = chefão na tela
+let pomo: { end: number; min: number } | null = null
+const warned = new Set<string>()
+let costStep = -1
 const byName = (name: string) => [...SPRITES, ...EXTRAS].find(s => s.name === name)
 const flipped = (g: Grid, flip: boolean) => (flip ? g.map(row => [...row].reverse()) : g)
 
@@ -37,22 +56,43 @@ const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`)
 const mins = (ms: number) => `${Math.floor(ms / 60000)}min`
 const SEED = Math.floor(Math.random() * 1000) // ponytail: novo a cada load, ordem dos personagens varia por sessão
 
-/** O personagem do palco reage: fala a linha e solta a especial (no máximo uma a cada ~15s). */
-async function react($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string, power?: number) {
-  try { await reactNow($, why, detail, power) } catch { /* enfeite: nunca atrapalha o trabalho */ }
+const save = ($: Engine) => $.fs.write(`${home}/.claude/pixel-sidebar.json`, JSON.stringify(stats)).catch(() => {})
+
+/** Dá XP, soma o contador e avisa nível novo e conquistas. */
+async function gain($: Engine, xp: number, field?: 'tasks' | 'deaths' | 'bosses' | 'focus') {
+  const before = level(stats.xp)
+  stats.xp += xp
+  if (field) stats[field]++
+  if (level(stats.xp) > before) $.ui.toast(`LEVEL UP! Nível ${level(stats.xp)}`, { timeoutMs: 5000 })
+  for (const [name, why, ok] of ACH) {
+    if (stats.got.includes(name) || !ok()) continue
+    stats.got.push(name)
+    $.ui.toast(`Conquista: ${name} (${why})`, { timeoutMs: 6000 })
+  }
+  await save($)
 }
 
-async function reactNow($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string, power?: number) {
+const ping = ($: Engine, text: string) => { if (notifs) void $.ui.notify(text).catch(() => {}) }
+
+/** O personagem do palco reage: fala a linha e solta a especial (no máximo uma a cada ~15s). */
+async function react($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string, power?: number, custom?: string) {
+  try { await reactNow($, why, detail, power, custom) } catch { /* enfeite: nunca atrapalha o trabalho */ }
+}
+
+async function reactNow($: Engine, why: 'done' | 'ask' | 'pause' | 'abort', detail: string, power?: number, custom?: string) {
   const n = await read($, tick)
   const f = await read($, force)
   if (n - f.at < 22) return
   const idx = scene(n, SEED, NAMES, room, f).idx
-  const line = cheer(why, NAMES[idx]!, detail, n)
+  const line = custom ?? cheer(why, NAMES[idx]!, detail, n)
   lines.set(`f${n}:shout`, power ? `CARREGADO! ${line}` : line)
   await update($, force, () => ({ at: n, idx, power }))
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  chargeMs = Number(options?.carregado_min ?? 5) * 60_000
+  notifs = options?.notificacoes !== false
+  alertUsd = Number(options?.custo_alerta_usd ?? 10)
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'sidebar', description: 'Abre a barra lateral' })
     await $.command.register({
@@ -65,6 +105,13 @@ export const register: Register = on => {
       description: 'Chama dois personagens pro palco ao mesmo tempo',
       argumentHint: '[mario|sonic|ryu|guile|scorpion|sub-zero|pac-man]',
     })
+    await $.command.register({
+      name: 'pomodoro',
+      description: 'Contagem de foco com o personagem (padrão 25 min; "parar" cancela)',
+      argumentHint: '[minutos|parar]',
+    })
+    home = (await $.env.get('HOME')) ?? ''
+    Object.assign(stats, JSON.parse(await $.fs.read(`${home}/.claude/pixel-sidebar.json`).catch(() => '{}')))
     const r = await $.ui.open({ id: PANE, title: 'Sessão', columns: 34 })
     if (!r.isPlaced) $.ui.toast('pixel-sidebar: terminal estreito, rode /sidebar ou alargue a janela', { timeoutMs: 8000 })
     // hot reload roda session.start de novo: cada geração cancela os timers da anterior
@@ -93,6 +140,25 @@ export const register: Register = on => {
         ponytail: (flag.split('\n')[0] ?? '').trim() || (flag ? 'full' : ''),
         agents: agents.map(a => ({ id: a.id, type: a.type, description: a.description, status: a.status })),
       }))
+      // contexto e custo: o personagem avisa ao cruzar 60%/85% e a cada alertUsd gastos
+      const pct = u.context.percent ?? 0
+      if (pct < 50) warned.clear()
+      else if (pct >= 85 && !warned.has('85')) {
+        warned.add('85'); warned.add('60')
+        ping($, 'Contexto em 85%. Hora de /compact.')
+        await react($, 'ask', '', undefined, 'Contexto em 85%! Faz um /compact antes que eu esqueça tudo.')
+      } else if (pct >= 60 && !warned.has('60')) {
+        warned.add('60')
+        await react($, 'pause', '', undefined, 'Contexto passou de 60%. Dá pra pensar num /compact.')
+      }
+      const usd = u.cost?.usd ?? 0
+      const step = Math.floor(usd / alertUsd)
+      if (costStep < 0) costStep = step
+      else if (step > costStep) {
+        costStep = step
+        ping($, `Sessão já custou US$ ${usd.toFixed(2)}.`)
+        await react($, 'pause', '', undefined, `Já são US$ ${usd.toFixed(2)} nessa sessão. A carteira sentiu.`)
+      }
     })
     // clima pelo IP, de hora em hora (wttr.in); falhou, o palco segue sem clima
     const fetchWeather = async () => {
@@ -114,6 +180,14 @@ export const register: Register = on => {
     // ponytail: redesenha o painel a cada 700ms por causa do palco; subir o intervalo se pesar
     own(700, async () => {
       const n = await update($, tick, x => x + 1)
+      if (pomo && Date.now() >= pomo.end) {
+        const { min } = pomo
+        pomo = null
+        ping($, `Pomodoro de ${min} min acabou. Levanta e bebe água.`)
+        $.ui.toast('Pomodoro acabou! Hora da pausa.', { timeoutMs: 6000 })
+        await react($, 'pause', '', undefined, 'Pomodoro acabou! Levanta, alonga e bebe água.')
+        await gain($, 30, 'focus')
+      }
       const f = await read($, force)
       const sc = scene(n, SEED, NAMES, room, f)
       const forced = n > f.at && n - f.at < 200 && sc.seed === 0 && f.loud === true
@@ -149,6 +223,14 @@ export const register: Register = on => {
     return { text: `${NAMES[idx]} vai soltar a especial${strong ? ' carregada' : ''}!` }
   })
 
+  on('command.run', { command: 'pomodoro' }, async (_$, e) => {
+    const a = e.args.trim().toLowerCase()
+    if (/^(parar|stop|cancel)/.test(a)) { pomo = null; return { text: 'Pomodoro cancelado.' } }
+    const min = Number.parseInt(a, 10) || Number(options?.pomodoro_min ?? 25)
+    pomo = { end: Date.now() + min * 60_000, min }
+    return { text: `Pomodoro de ${min} min começou. Foco!` }
+  })
+
   on('command.run', { command: 'encontro' }, async ($, e) => {
     const n = await read($, tick)
     const want = e.args.trim().toLowerCase()
@@ -172,7 +254,8 @@ export const register: Register = on => {
       const fresh = list.filter(x => x.status === 'completed').at(-1)
       // tarefa longa (5+ min em andamento) = especial carregada
       const since = fresh ? began.get(fresh.content) : undefined
-      const power = since && Date.now() - since >= CHARGE_MS ? 2 : undefined
+      const power = since && Date.now() - since >= chargeMs ? 2 : undefined
+      await gain($, power ? 50 : 10, 'tasks')
       await react($, 'done', fresh?.content ?? 'tarefa', power)
     }
     if (began.size > 100) began.clear()
@@ -187,19 +270,40 @@ export const register: Register = on => {
       // ponytail: qualquer exit != 0 conta (até grep sem match); no máximo 1 a cada ~4min
       const n = await read($, tick)
       const ev = await read($, banner)
-      if (ev.kind !== 'died' || n - ev.at > 340) await update($, banner, () => ({ kind: 'died', at: n }))
+      if (ev.kind !== 'died' || n - ev.at > 340) {
+        await update($, banner, () => ({ kind: 'died', at: n }))
+        await gain($, 0, 'deaths')
+      }
+      if (++boss.streak === 3) {
+        boss.name = BOSSES[Math.floor(Math.random() * BOSSES.length)]!
+        $.ui.toast(`CHEFÃO: ${boss.name} apareceu! Corrija o erro pra derrotá-lo.`, { timeoutMs: 6000 })
+      }
+    } else if (e.tool === 'Bash' && 'isError' in res) {
+      if (boss.streak >= 3) {
+        const nome = boss.name
+        await gain($, 40, 'bosses')
+        await react($, 'done', nome, undefined, `${nome} derrotado! +40 XP.`)
+      }
+      boss.streak = 0
     }
     return res
   })
 
   on('tool.check', async ($, e, next) => {
     const v = await next(e)
-    if (v.decision === 'ask') await react($, 'ask', e.tool)
+    if (v.decision === 'ask') {
+      ping($, `Claude pede autorização: ${e.tool}`)
+      await react($, 'ask', e.tool)
+    }
     return v
   })
 
   on('turn.complete', async ($, e, next) => {
-    if (!('agentId' in e && e.agentId)) await react($, e.isAborted ? 'abort' : 'pause', '')
+    if (!('agentId' in e && e.agentId)) {
+      await react($, e.isAborted ? 'abort' : 'pause', '')
+      // avisa fora do terminal só quando o turno foi longo (dá tempo de ter saído da frente da tela)
+      if (!e.isAborted && e.durationMs >= 60_000) ping($, `Claude terminou (${Math.round(e.durationMs / 1000)} s).`)
+    }
     return next(e)
   })
 
@@ -245,7 +349,7 @@ export const register: Register = on => {
     const now = new Date()
     const wx = await read($, weather)
     // estimativa das linhas dos cartões; sem espaço, some o cartão de agentes vazio pro palco caber
-    const cardRows = 5 + 4 + 3 + 3 + Math.max(1, live.length) + 4 + Math.min(t.length, 6)
+    const cardRows = 5 + 4 + 3 + 3 + 3 + (pomo ? 4 : 0) + (boss.streak >= 3 ? 4 : 0) + Math.max(1, live.length) + 4 + Math.min(t.length, 6)
     const roomy = (e.props.scroll?.bodyRows ?? 99) >= cardRows + STAGE_ROWS
     const canvas = cells(paint(n, room, sc, px, now, wx, { guest: guestPx, hat: hatSp && mainColor(hatSp) }))
     if (sc.talk) {
@@ -316,6 +420,21 @@ export const register: Register = on => {
         ))}
         {card('CUSTO', undefined, (
           <Text bold color="success">US$ {s.usd.toFixed(2)}</Text>
+        ))}
+        {card('NÍVEL', `${stats.xp} XP`, (
+          <Box flexDirection="column">
+            <Text color="suggestion">Nv {level(stats.xp)} <Text color="subtle">{stats.got.length}/{ACH.length} conquistas</Text></Text>
+            <Text color="suggestion">{bar(((stats.xp - 25 * (level(stats.xp) - 1) ** 2) / (25 * (2 * level(stats.xp) - 1))) * 100, w)}</Text>
+          </Box>
+        ))}
+        {pomo && card('FOCO', `${pomo.min} min`, (
+          <Box flexDirection="column">
+            <Text bold color="warning">{Math.floor(Math.max(0, pomo.end - Date.now()) / 60000)}:{String(Math.floor((Math.max(0, pomo.end - Date.now()) % 60000) / 1000)).padStart(2, '0')}</Text>
+            <Text color="warning">{bar((1 - (pomo.end - Date.now()) / (pomo.min * 60000)) * 100, w)}</Text>
+          </Box>
+        ))}
+        {boss.streak >= 3 && card('CHEFÃO', boss.name, (
+          <Text color="error">{'♥'.repeat(Math.min(boss.streak, 10))} <Text color="subtle">{boss.streak} erros seguidos</Text></Text>
         ))}
         {(live.length > 0 || roomy) && card('AGENTES', String(live.length), (
           <Box flexDirection="column">

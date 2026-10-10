@@ -14,6 +14,11 @@ Uma barra lateral para o [Claude Code](https://claude.com/claude-code) que mostr
 - **Encontros**: às vezes dois personagens dividem o palco. Mario e Sonic apostam corrida, Ryu duela com Guile, Scorpion com Sub-Zero, e o Pac-Man foge do fantasma até achar a pastilha de poder.
 - **Kirby copia**: o Kirby inspira o personagem anterior e solta a especial dele, de chapéu.
 - **Especial carregado**: quando uma tarefa passa mais de 5 minutos em andamento, ao terminar o especial sai maior, com brilho em volta.
+- **Nível e conquistas**: tarefa concluída dá XP (50 se foi carregada), chefão derrotado e pomodoro também. Sobe de nível, ganha conquistas, e o progresso fica em `~/.claude/pixel-sidebar.json`.
+- **Chefão**: três erros seguidos no Bash e um chefão (Bug Gigante, Segfault...) aparece no painel. O próximo comando que passar derrota o bicho.
+- **Contexto e custo**: o personagem avisa ao passar de 60% e 85% do contexto e a cada US$ 10 gastos na sessão.
+- **Notificações nativas**: avisa fora do terminal quando um turno de mais de 1 min termina, quando o Claude pede autorização e quando o contexto passa de 85%.
+- **Pomodoro**: `/pomodoro` abre um cronômetro de foco no painel; no fim o personagem comemora e você ganha XP.
 - **Reações**: quando uma tarefa é concluída, quando o Claude pede autorização ou quando o turno termina, o personagem comenta e solta o especial.
 
 ## Instalação
@@ -46,7 +51,12 @@ Fora da tela cheia, o painel abre inline.
 | `/especial` | O personagem atual solta o especial agora |
 | `/especial goku` | Chama um personagem específico (o nome pode ser parcial) |
 | `/especial goku forte` | Especial carregado |
+| `/pomodoro [min\|parar]` | Cronômetro de foco (padrão 25 min) |
 | `/encontro` | Chama um encontro (ou `/encontro ryu`, por exemplo) |
+
+## Configuração
+
+Opções em `/config` (ou `pluginConfigs` no `settings.json`): `notificacoes` (liga/desliga os avisos nativos), `carregado_min` (minutos pro especial carregado, padrão 5), `custo_alerta_usd` (padrão 10) e `pomodoro_min` (padrão 25).
 
 ## Observações
 

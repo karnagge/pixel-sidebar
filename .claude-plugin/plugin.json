@@ -6,5 +6,31 @@
   "author": {
     "name": "Francisco Faria",
     "url": "https://github.com/karnagge"
+  },
+  "userConfig": {
+    "notificacoes": {
+      "type": "boolean",
+      "title": "Notificações nativas",
+      "description": "Avisa fora do terminal quando um turno longo termina, o Claude pede autorização ou o contexto enche",
+      "default": true
+    },
+    "carregado_min": {
+      "type": "number",
+      "title": "Minutos pro especial carregado",
+      "description": "Tarefa em andamento por mais que isso solta o especial carregado",
+      "default": 5
+    },
+    "custo_alerta_usd": {
+      "type": "number",
+      "title": "Alerta de custo (US$)",
+      "description": "O personagem comenta a cada tanto gasto na sessão",
+      "default": 10
+    },
+    "pomodoro_min": {
+      "type": "number",
+      "title": "Duração do pomodoro (min)",
+      "description": "Padrão do comando /pomodoro",
+      "default": 25
+    }
   }
 }
