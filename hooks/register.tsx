@@ -349,7 +349,7 @@ export const register: Register = (on, options) => {
     const now = new Date()
     const wx = await read($, weather)
     // estimativa das linhas dos cartões; sem espaço, some o cartão de agentes vazio pro palco caber
-    const cardRows = 5 + 4 + 3 + 3 + 3 + (pomo ? 4 : 0) + (boss.streak >= 3 ? 4 : 0) + Math.max(1, live.length) + 4 + Math.min(t.length, 6)
+    const cardRows = 5 + 4 + 3 + 3 + 1 + (pomo ? 4 : 0) + (boss.streak >= 3 ? 4 : 0) + Math.max(1, live.length) + 4 + Math.min(t.length, 6)
     const roomy = (e.props.scroll?.bodyRows ?? 99) >= cardRows + STAGE_ROWS
     const canvas = cells(paint(n, room, sc, px, now, wx, { guest: guestPx, hat: hatSp && mainColor(hatSp) }))
     if (sc.talk) {
@@ -421,12 +421,9 @@ export const register: Register = (on, options) => {
         {card('CUSTO', undefined, (
           <Text bold color="success">US$ {s.usd.toFixed(2)}</Text>
         ))}
-        {card('NÍVEL', `${stats.xp} XP`, (
-          <Box flexDirection="column">
-            <Text color="suggestion">Nv {level(stats.xp)} <Text color="subtle">{stats.got.length}/{ACH.length} conquistas</Text></Text>
-            <Text color="suggestion">{bar(((stats.xp - 25 * (level(stats.xp) - 1) ** 2) / (25 * (2 * level(stats.xp) - 1))) * 100, w)}</Text>
-          </Box>
-        ))}
+        <Text color="subtle" wrap="truncate">
+          <Text color="suggestion">Nv {level(stats.xp)}</Text> {bar(((stats.xp - 25 * (level(stats.xp) - 1) ** 2) / (25 * (2 * level(stats.xp) - 1))) * 100, 8)} {stats.xp} XP · {stats.got.length}/{ACH.length}🏆
+        </Text>
         {pomo && card('FOCO', `${pomo.min} min`, (
           <Box flexDirection="column">
             <Text bold color="warning">{Math.floor(Math.max(0, pomo.end - Date.now()) / 60000)}:{String(Math.floor((Math.max(0, pomo.end - Date.now()) % 60000) / 1000)).padStart(2, '0')}</Text>
