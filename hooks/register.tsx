@@ -349,7 +349,7 @@ export const register: Register = (on, options) => {
     const now = new Date()
     const wx = await read($, weather)
     // estimativa das linhas dos cartões; sem espaço, some o cartão de agentes vazio pro palco caber
-    const cardRows = 5 + 4 + 3 + 3 + 1 + (pomo ? 4 : 0) + (boss.streak >= 3 ? 4 : 0) + Math.max(1, live.length) + 4 + Math.min(t.length, 6)
+    const cardRows = 5 + 4 + 3 + 3 + (pomo ? 4 : 0) + (boss.streak >= 3 ? 4 : 0) + Math.max(1, live.length) + 4 + Math.min(t.length, 6)
     const roomy = (e.props.scroll?.bodyRows ?? 99) >= cardRows + STAGE_ROWS
     const canvas = cells(paint(n, room, sc, px, now, wx, { guest: guestPx, hat: hatSp && mainColor(hatSp) }))
     if (sc.talk) {
@@ -387,6 +387,9 @@ export const register: Register = (on, options) => {
       const msg = ev.kind === 'died' ? ' VOCÊ MORREU ' : ' TAREFA CONCLUÍDA '
       stamp(canvas, 3, Math.max(0, Math.floor((room - msg.length) / 2)), msg, ev.kind === 'died' ? '#e04a3a' : '#f0c040', { bold: true })
     }
+    // nível no canto inferior direito do palco, discreto
+    const lv = `Nv ${level(stats.xp)} · ${stats.xp} XP`
+    stamp(canvas, canvas.length - 1, Math.max(0, room - lv.length - 1), lv, 'ink')
     const stage = merge(canvas).map(line => (
       <Text wrap="truncate-end">{line.map(seg => <Text color={seg.fg} backgroundColor={seg.bg} bold={seg.bold}>{seg.text}</Text>)}</Text>
     ))
@@ -421,9 +424,6 @@ export const register: Register = (on, options) => {
         {card('CUSTO', undefined, (
           <Text bold color="success">US$ {s.usd.toFixed(2)}</Text>
         ))}
-        <Box paddingX={2}><Text color="subtle" wrap="truncate">
-          <Text color="suggestion">Nv {level(stats.xp)}</Text> {bar(((stats.xp - 25 * (level(stats.xp) - 1) ** 2) / (25 * (2 * level(stats.xp) - 1))) * 100, 8)} {stats.xp} XP · {stats.got.length}/{ACH.length}★
-        </Text></Box>
         {pomo && card('FOCO', `${pomo.min} min`, (
           <Box flexDirection="column">
             <Text bold color="warning">{Math.floor(Math.max(0, pomo.end - Date.now()) / 60000)}:{String(Math.floor((Math.max(0, pomo.end - Date.now()) % 60000) / 1000)).padStart(2, '0')}</Text>
