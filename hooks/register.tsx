@@ -421,9 +421,9 @@ export const register: Register = (on, options) => {
         {card('CUSTO', undefined, (
           <Text bold color="success">US$ {s.usd.toFixed(2)}</Text>
         ))}
-        <Text color="subtle" wrap="truncate">
-          <Text color="suggestion">Nv {level(stats.xp)}</Text> {bar(((stats.xp - 25 * (level(stats.xp) - 1) ** 2) / (25 * (2 * level(stats.xp) - 1))) * 100, 8)} {stats.xp} XP · {stats.got.length}/{ACH.length}🏆
-        </Text>
+        <Box paddingX={2}><Text color="subtle" wrap="truncate">
+          <Text color="suggestion">Nv {level(stats.xp)}</Text> {bar(((stats.xp - 25 * (level(stats.xp) - 1) ** 2) / (25 * (2 * level(stats.xp) - 1))) * 100, 8)} {stats.xp} XP · {stats.got.length}/{ACH.length}★
+        </Text></Box>
         {pomo && card('FOCO', `${pomo.min} min`, (
           <Box flexDirection="column">
             <Text bold color="warning">{Math.floor(Math.max(0, pomo.end - Date.now()) / 60000)}:{String(Math.floor((Math.max(0, pomo.end - Date.now()) % 60000) / 1000)).padStart(2, '0')}</Text>
